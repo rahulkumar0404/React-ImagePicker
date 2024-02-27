@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import logoImg from './assets/logo.png';
 import Places from './components/Places';
 import Modal from './components/Modal';
 import DeleteConfirmation from './components/DeleteConfirmation';
-// import { AVAILABLE_PLACES } from './data';
 import AvailablePlaces from './components/AvailablePlaces';
 import { updateUserPlaces, deleteUserPlaces, fetchUserPlaces } from './http';
 import Error from './components/Error';
+import { useFetch } from './hooks/useFetch';
 
 // const storedIds = JSON.parse(localStorage.getItem('selectedPlaces')) || [];
 // const storedPlaces = storedIds.map((id) =>
@@ -120,30 +120,33 @@ import Error from './components/Error';
 // }
 
 function App() {
+  // const [userPlaces, setUserPlaces] = useState([]);
+  //   const [isFetching, setFetching] = useState(false);
+  //   const [error, setError] = useState();
+  // useEffect(() => {
+  //   async function getUserPlaces() {
+  //     setFetching(true);
+  //     try {
+  //       const userPlaces = await fetchUserPlaces();
+  //       setUserPlaces(userPlaces);
+  //     } catch (err) {
+  //       setError({ message: err.message || 'Failed to Fetch Places...' });
+  //     }
+  //     setFetching(false);
+  //   }
+  //   getUserPlaces();
+  // }, []);
+
   const selectedPlace = useRef();
-
-  const [userPlaces, setUserPlaces] = useState([]);
-
+  const [errorUpdatingPlaces, setErrorUpdatingPlaces] = useState();
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
-  const [errorUpdatingPlaces, setErrorUpdatingPlaces] = useState();
-  const [isFetching, setFetching] = useState(false);
-  const [error, setError] = useState();
-
-  useEffect(() => {
-    async function getUserPlaces() {
-      setFetching(true);
-      try {
-        const userPlaces = await fetchUserPlaces();
-        setUserPlaces(userPlaces);
-      } catch (err) {
-        setError({ message: err.message || 'Failed to Fetch Places...' });
-      }
-      setFetching(false);
-    }
-    getUserPlaces();
-  }, []);
-
+  const {
+    isFetching,
+    fetchedData: userPlaces,
+    error,
+    setFetchedData: setUserPlaces,
+  } = useFetch(fetchUserPlaces, []);
   function handleStartRemovePlace(place) {
     setModalIsOpen(true);
     selectedPlace.current = place;
@@ -174,20 +177,25 @@ function App() {
     }
   }
 
-  const handleRemovePlace = useCallback(async function handleRemovePlace() {
-    setUserPlaces((prevPickedPlaces) =>
-      prevPickedPlaces.filter((place) => place.id !== selectedPlace.current.id)
-    );
+  const handleRemovePlace = useCallback(
+    async function handleRemovePlace() {
+      setUserPlaces((prevPickedPlaces) =>
+        prevPickedPlaces.filter(
+          (place) => place.id !== selectedPlace.current.id
+        )
+      );
 
-    try {
-      await deleteUserPlaces(selectedPlace.current.id);
-    } catch (err) {
-      setErrorUpdatingPlaces({
-        message: err.message || 'Failed to Delete Place!',
-      });
-    }
-    setModalIsOpen(false);
-  }, []);
+      try {
+        await deleteUserPlaces(selectedPlace.current.id);
+      } catch (err) {
+        setErrorUpdatingPlaces({
+          message: err.message || 'Failed to Delete Place!',
+        });
+      }
+      setModalIsOpen(false);
+    },
+    [setUserPlaces]
+  );
 
   function handleError() {
     setErrorUpdatingPlaces(null);
